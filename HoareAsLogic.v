@@ -239,8 +239,23 @@ Qed.
 Theorem provable_true_post : forall c P,
     derivable P c True.
 Proof.
-  (* FILL IN HERE *) Admitted.
-
+  induction c; intros.
+  - eapply H_Consequence_post; try constructor; try auto.
+  - eapply H_Consequence_pre.
+    + constructor.
+    + intros. auto.
+  - eapply H_Consequence_post; try constructor; try auto.
+    econstructor.
+    + apply IHc2.
+    + apply IHc1.
+  - eapply H_Consequence_post; try constructor; try auto.
+  - eapply H_Consequence_post.
+    + eapply H_Consequence_pre.
+      * econstructor.
+        apply IHc.
+      * auto.
+    + auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard (provable_false_pre) *)
@@ -251,7 +266,29 @@ Proof.
 Theorem provable_false_pre : forall c Q,
     derivable False c Q.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  induction c; intros.
+  - eapply H_Consequence_pre. constructor. contradiction.
+  - eapply H_Consequence_pre. constructor. contradiction.
+  - econstructor.
+    + apply IHc2.
+    + auto.
+  - econstructor.
+    + eapply H_Consequence_pre.
+      * apply IHc1.
+      * intros. destruct H. assumption.
+    + eapply H_Consequence_pre.
+      * apply IHc2.
+      * intros. destruct H. assumption.
+  - apply H_Consequence_post with (Q' := assert_of_Prop False).
+    + apply H_Consequence_post with (Q' := fun st => (assert_of_Prop False) st /\ ~(bassertion b st)).
+      * constructor.
+        apply H_Consequence_pre with (P' := assert_of_Prop False).
+        -- apply IHc.
+        -- intros. simpl. destruct H. assumption.
+      * intros. destruct H. assumption.
+    + intros. inversion H.
+Qed.
+
 
 (** [] *)
 
@@ -289,7 +326,24 @@ Proof.
 Theorem hoare_sound : forall P c Q,
   derivable P c Q -> valid P c Q.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction X.
+  - apply hoare_skip.
+  - apply hoare_asgn.
+  - eapply hoare_seq.
+    + apply IHX1.
+    + assumption.
+  - apply hoare_if; assumption.
+  - apply hoare_while. assumption.
+  - unfold valid.
+    intros.
+    apply q.
+    unfold valid in IHX.
+    apply IHX in H.
+    + assumption.
+    + apply p. assumption.
+Qed.
+
 (** [] *)
 
 (** The proof of completeness is more challenging.  To carry out the
@@ -334,7 +388,11 @@ Proof. eauto. Qed.
 Lemma wp_seq : forall P Q c1 c2,
     derivable P c1 (wp c2 Q) -> derivable (wp c2 Q) c2 Q -> derivable P <{c1; c2}> Q.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  econstructor.
+  - apply X0.
+  - assumption.
+Qed.
 
 (** [] *)
 
@@ -347,7 +405,18 @@ Proof.
 Lemma wp_invariant : forall b c Q,
     valid (wp <{while b do c end}> Q /\ b) c (wp <{while b do c end}> Q).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  unfold valid. intros.
+  unfold wp. intros.
+  unfold wp in H0.
+  destruct H0.
+  apply H0.
+  econstructor.
+  + assumption.
+  + eassumption.
+  + assumption
+  + assumption.
+Qed.
 
 (** [] *)
 
