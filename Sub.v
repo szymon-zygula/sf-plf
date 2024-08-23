@@ -943,14 +943,18 @@ Proof.
 Example subtyping_example_1 :
   <{Top->Student}> <:  <{(C->C)->Person}>.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  constructor.
+  - constructor.
+  - apply sub_student_person.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (subtyping_example_2) *)
 Example subtyping_example_2 :
   <{Top->Person}> <: <{Person->Top}>.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  constructor; constructor.
+Qed.
 (** [] *)
 
 End Examples.
@@ -1063,7 +1067,12 @@ Lemma sub_inversion_Bool : forall U,
 Proof with auto.
   intros U Hs.
   remember <{Bool}> as V.
-  (* FILL IN HERE *) Admitted.
+  induction Hs...
+  - subst.
+    rewrite <- IHHs2...
+  - inversion HeqV.
+  - inversion HeqV.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, standard (sub_inversion_arrow) *)
@@ -1075,7 +1084,26 @@ Proof with eauto.
   intros U V1 V2 Hs.
   remember <{V1->V2}> as V.
   generalize dependent V2. generalize dependent V1.
-  (* FILL IN HERE *) Admitted.
+  induction Hs; intros...
+  - apply IHHs2 in HeqV.
+    destruct HeqV.
+    destruct H.
+    destruct H.
+    destruct H0.
+    apply IHHs1 in H.
+    destruct H.
+    destruct H.
+    destruct H.
+    destruct H2.
+    exists x1.
+    exists x2.
+    split...
+  - inversion HeqV.
+  - exists S1.
+    exists S2.
+    inversion HeqV. subst.
+    split...
+Qed.
 (** [] *)
 
 (** There are additional _inversion lemmas_ for the other types:
@@ -1090,7 +1118,12 @@ Lemma sub_inversion_Unit : forall U,
 Proof with auto.
   intros U Hs.
   remember <{Unit}> as V.
-  (* FILL IN HERE *) Admitted.
+  induction Hs...
+  - rewrite IHHs2 in IHHs1...
+  - inversion HeqV.
+  - inversion HeqV.
+Qed.
+
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (sub_inversion_Base) *)
@@ -1100,7 +1133,11 @@ Lemma sub_inversion_Base : forall U s,
 Proof with auto.
   intros U s Hs.
   remember <{Base s}> as V.
-  (* FILL IN HERE *) Admitted.
+  induction Hs...
+  - rewrite IHHs2 in IHHs1...
+  - inversion HeqV.
+  - inversion HeqV.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (sub_inversion_Top) *)
@@ -1110,7 +1147,10 @@ Lemma sub_inversion_Top : forall U,
 Proof with auto.
   intros U Hs.
   remember <{Top}> as V.
-  (* FILL IN HERE *) Admitted.
+  induction Hs...
+  - rewrite IHHs1 in IHHs2...
+  - inversion HeqV.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -1147,7 +1187,36 @@ Lemma canonical_forms_of_arrow_types : forall Gamma s T1 T2,
   exists x S1 s2,
      s = <{\x:S1,s2}>.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  (*
+     Explicitly weaken the hypothesis before induction.
+     Marvelous technique!
+  *)
+  remember <{ T1 -> T2 }>.
+  assert (Hs: <{ T1 -> T2 }> <: <{ T1 -> T2}>).
+  {
+    apply S_Refl.
+  }
+  rewrite <- Heqt in Hs at 1.
+  clear Heqt.
+  induction H; try solve_by_invert...
+  - apply sub_inversion_arrow in Hs.
+    destruct Hs.
+    destruct H.
+    destruct H.
+    inversion H.
+  - apply sub_inversion_arrow in Hs.
+    destruct Hs.
+    destruct H.
+    destruct H.
+    inversion H.
+  - apply sub_inversion_arrow in Hs.
+    destruct Hs.
+    destruct H.
+    destruct H.
+    inversion H.
+Qed.
+
 (** [] *)
 
 (** Similarly, the canonical forms of type [Bool] are the constants
@@ -1164,7 +1233,6 @@ Proof with eauto.
   - (* T_Sub *)
     subst. apply sub_inversion_Bool in H. subst...
 Qed.
-
 (* ================================================================= *)
 (** ** Progress *)
 
@@ -1320,7 +1388,24 @@ Lemma typing_inversion_var : forall Gamma (x:string) T,
   exists S,
     Gamma x = Some S /\ S <: T.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  remember <{T}>.
+  assert (Hs: <{ T }> <: <{ T }>).
+  { apply S_Refl. }
+  
+  rewrite <- Heqt in Hs at 1.
+  clear Heqt.
+
+  remember (tm_var x).
+  induction H; subst; intros; try solve_by_invert...
+  - exists T1.
+    inversion Heqt0.
+    rewrite H1 in H...
+  - destruct IHhas_type...
+    destruct H1.
+    exists x0...
+Qed.
+
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, optional (typing_inversion_app) *)
@@ -1330,7 +1415,23 @@ Lemma typing_inversion_app : forall Gamma t1 t2 T2,
     Gamma |-- t1 \in (T1->T2) /\
     Gamma |-- t2 \in T1.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  remember <{ T2 }>.
+  assert (Hs: <{ T2 }> <: <{ T2 }>).
+  { apply S_Refl. }
+  rewrite <- Heqt in Hs at 1.
+  clear Heqt.
+  remember <{ t1 t2 }>.
+  induction H; subst; intros; try solve_by_invert...
+  - inversion Heqt0. subst.
+    exists T0...
+  - destruct IHhas_type...
+    exists x.
+    destruct H1.
+    split.
+    + eapply T_Sub...
+    + assumption.
+Qed.
 (** [] *)
 
 Lemma typing_inversion_unit : forall Gamma T,
@@ -1627,7 +1728,10 @@ Theorem formal_subtype_instances_tf_1a:
   TF (forall S T U V, S <: T -> U <: V ->
          <{T->S}> <: <{T->S}>).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  left.
+  intros.
+  constructor.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (formal_subtype_instances_tf_1b) *)
@@ -1635,7 +1739,8 @@ Theorem formal_subtype_instances_tf_1b:
   TF (forall S T U V, S <: T -> U <: V ->
          <{Top->U}> <: <{S->Top}>).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  left. intros. constructor; constructor.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (formal_subtype_instances_tf_1c) *)
@@ -1643,7 +1748,7 @@ Theorem formal_subtype_instances_tf_1c:
   TF (forall S T U V, S <: T -> U <: V ->
          <{(C->C)->(A*B)}> <: <{(C->C)->(Top*B)}>).
 Proof.
-  (* FILL IN HERE *) Admitted.
+
 (** [] *)
 
 (** **** Exercise: 1 star, standard, optional (formal_subtype_instances_tf_1d) *)

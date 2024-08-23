@@ -200,7 +200,22 @@ Hint Unfold stuck : core.
 Example some_term_is_stuck :
   exists t, stuck t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists (scc tru).
+  unfold stuck.
+  split.
+  - unfold step_normal_form.
+    intros contra.
+    destruct contra.
+    inversion H. subst.
+    inversion H1.
+  - intros contra.
+    unfold value in contra.
+    destruct contra.
+    + inversion H.
+    + inversion H. subst.
+      inversion H1.
+Qed.
+
 (** [] *)
 
 (** However, although values and normal forms are _not_ the same in this
@@ -213,7 +228,23 @@ Proof.
 Lemma value_is_nf : forall t,
   value t -> step_normal_form t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  unfold step_normal_form.
+  intros contra.
+  destruct contra.
+  unfold value in H.
+  destruct H.
+  - induction H.
+    + inversion H0.
+    + inversion H0.
+  - generalize dependent x.
+    induction H; intros.
+    + inversion H0.
+    + inversion H0. subst.
+      apply IHnvalue in H2.
+      assumption.
+Qed.
+
 
 (** (Hint: You will reach a point in this proof where you need to
     use an induction to reason about a term that is known to be a
@@ -233,7 +264,33 @@ Proof.
 Theorem step_deterministic:
   deterministic step.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  unfold deterministic.
+  intros.
+  generalize dependent y2.
+  induction H; subst; eauto; intros.
+  - inversion H0; subst.
+    + reflexivity.
+    + inversion H4.
+  - inversion H0; subst.
+    + reflexivity.
+    + inversion H4.
+  - inversion H0; subst.
+    + inversion H.
+    + inversion H.
+    + apply IHstep in H5.
+      subst.
+      reflexivity.
+  - inversion H0. subst.
+    apply IHstep in H2. subst.
+    reflexivity.
+  - inversion H0; subst.
+    + reflexivity.
+    + inversion H1.
+  - inversion H0; subst.
+    + reflexivity.
+    + Admitted.
+
+
 (** [] *)
 
 (* ================================================================= *)
@@ -340,7 +397,10 @@ Example succ_hastype_nat__hastype_nat : forall t,
   |-- <{succ t}> \in Nat ->
   |-- t \in Nat.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  inversion H. subst.
+  assumption.
+Qed.
 (** [] *)
 
 (* ----------------------------------------------------------------- *)
@@ -401,7 +461,45 @@ Proof.
     + (* t1 can take a step *)
       destruct H as [t1' H1].
       exists (<{ if t1' then t2 else t3 }>). auto.
-  (* FILL IN HERE *) Admitted.
+  - destruct IHHT.
+    + apply (nat_canonical t1 HT) in H.
+      left.
+      right.
+      constructor.
+      assumption.
+    + destruct H.
+      right.
+      exists (<{ succ x }>).
+      constructor.
+      assumption.
+  - right.
+    destruct IHHT.
+    + apply (nat_canonical t1 HT) in H.
+      inversion H.
+      * exists <{ 0 }>.
+        constructor.
+      * exists (t).
+        constructor.
+        assumption.
+    + destruct H.
+      exists <{ pred x }>.
+      constructor.
+      assumption.
+  - right.
+    destruct IHHT.
+    + apply (nat_canonical t1 HT) in H.
+      inversion H; subst.
+      * exists <{ true }>.
+        constructor.
+      * exists <{false}>.
+        constructor.
+        assumption.
+    + destruct H.
+      exists <{ iszero x}>.
+      constructor.
+      assumption.
+Qed.
+
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (finish_progress_informal)
@@ -470,7 +568,26 @@ Proof.
       + (* ST_IfFalse *) assumption.
       + (* ST_If *) apply T_If; try assumption.
         apply IHHT1; assumption.
-    (* FILL IN HERE *) Admitted.
+    - inversion HE; subst.
+      constructor.
+      apply IHHT.
+      assumption.
+    - inversion HE.
+      + constructor.
+      + subst.
+        inversion HT. subst.
+        assumption.
+      + subst.
+        constructor.
+        apply IHHT.
+        assumption.
+    - inversion HE; subst.
+      + constructor.
+      + constructor.
+      + constructor.
+        apply IHHT.
+        assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (finish_preservation_informal)
@@ -521,7 +638,37 @@ Theorem preservation' : forall t t' T,
   t --> t' ->
   |-- t' \in T.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  generalize dependent T.
+  induction H0; intros.
+  - inversion H. subst.
+    assumption.
+  - inversion H. subst.
+    assumption.
+  - inversion H. subst.
+    apply IHstep in H4.
+    constructor; assumption.
+  - inversion H. subst.
+    apply IHstep in H2.
+    constructor.
+    assumption.
+  - inversion H. subst.
+    constructor.
+  - inversion H0. subst.
+    inversion H2. subst.
+    assumption.
+  - inversion H. subst.
+    apply IHstep in H2.
+    constructor.
+    assumption.
+  - inversion H. constructor.
+  - inversion H0. subst.
+    constructor.
+  - inversion H. subst.
+    apply IHstep in H2.
+    constructor.
+    assumption.
+Qed.
 (** [] *)
 
 (** The preservation theorem is often called _subject reduction_,
@@ -544,7 +691,8 @@ Corollary soundness : forall t t' T,
   t -->* t' ->
   ~(stuck t').
 Proof.
-  intros t t' T HT P. induction P; intros [R S].
+  intros t t' T HT P. 
+  induction P; intros [R S].
   - apply progress in HT. destruct HT; auto.
   - apply IHP.
     + apply preservation with (t := x); auto.
@@ -570,7 +718,17 @@ Theorem subject_expansion:
   \/
   ~ (forall t t' T, t --> t' /\ |-- t' \in T -> |-- t \in T).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  right.
+  intros contra.
+  specialize contra with (t := <{ if true then 0 else false }>) (t' := <{ 0 }>) (T := Nat).
+  assert (IF: <{ if true then 0 else false }> --> <{ 0 }> /\ |-- <{ 0 }> \in Nat).
+  { 
+    split; constructor.
+  }
+  apply contra in IF.
+  inversion IF. subst.
+  inversion H5.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (variation1)

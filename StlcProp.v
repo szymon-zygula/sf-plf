@@ -146,7 +146,50 @@ Theorem progress' : forall t T,
 Proof.
   intros t.
   induction t; intros T Ht; auto.
-  (* FILL IN HERE *) Admitted.
+  - inversion Ht. subst.
+    inversion H1.
+  - right.
+    inversion Ht. subst.
+    remember H2. clear Heqh.
+    apply IHt1 in H2.
+    remember H4. clear Heqh0.
+    apply IHt2 in H4.
+    destruct H2.
+    + apply canonical_forms_fun in h; destruct h; destruct H4; try auto.
+      * destruct H0. subst.
+        eexists.
+        apply ST_AppAbs.
+        assumption.
+      * destruct H0. destruct H1. subst.
+        eexists.
+        apply ST_App2.
+        -- constructor.
+        -- eassumption.
+    + destruct H.
+      exists <{ x0 t2 }>.
+      apply ST_App1.
+      assumption.
+  - right.
+    inversion Ht. subst.
+    remember H3. clear Heqh.
+    apply IHt1 in H3.
+    remember H5. clear Heqh0.
+    apply IHt2 in H5.
+    remember H6. clear Heqh1.
+    apply IHt3 in H6.
+    destruct H3.
+    + apply canonical_forms_bool in h.
+      * destruct h; subst.
+        -- exists t2.
+           constructor.
+        -- exists t3.
+           constructor.
+      * assumption.
+    + destruct H.
+      exists <{ if x0 then t2 else t3}>.
+      apply ST_If. assumption.
+Qed.
+
 (** [] *)
 
 (* ################################################################# *)
@@ -329,12 +372,31 @@ Lemma substitution_preserves_typing_from_typing_ind : forall Gamma x U t v T,
   x |-> U ; Gamma |-- t \in T ->
   empty |-- v \in U   ->
   Gamma |-- [x:=v]t \in T.
-Proof.
+Proof with eauto.
   intros Gamma x U t v T Ht Hv.
   remember (x |-> U; Gamma) as Gamma'.
   generalize dependent Gamma.
-  induction Ht; intros Gamma' G; simpl; eauto.
- (* FILL IN HERE *) Admitted.
+  induction Ht; intros Gamma' G; simpl...
+  - destruct (x =? x0)%string eqn:D.
+    + apply eqb_eq in D. subst.
+      rewrite update_eq in H.
+      inversion H. subst.
+      apply weakening_empty...
+    + apply eqb_neq in D.
+      subst.
+      eapply update_neq in D.
+      rewrite D in H.
+      constructor...
+  - destruct (x =? x0)%string eqn:D.
+    + apply eqb_eq in D. subst.
+      constructor.
+      rewrite update_shadow in Ht...
+    + constructor.
+      apply IHHt.
+      subst.
+      apply update_permute.
+      apply eqb_neq in D...
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -421,9 +483,17 @@ Qed.
 
 Theorem not_subject_expansion:
   exists t t' T, t --> t' /\ (empty |-- t' \in T) /\ ~ (empty |-- t \in T).
-Proof.
-  (* Write "exists <{ ... }>" to use STLC notation. *)
-  (* FILL IN HERE *) Admitted.
+Proof with eauto.
+  exists <{ (\x:Bool->Bool, true) true  }>.
+  exists <{ true }>.
+  exists <{ Bool }>.
+  split...
+  split...
+  intros contra.
+  inversion contra. subst.
+  inversion H2. subst.
+  inversion H4.
+Qed.
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_subject_expansion_stlc : option (nat*string) := None.
@@ -444,11 +514,15 @@ Corollary type_soundness : forall t t' T,
   empty |-- t \in T ->
   t -->* t' ->
   ~(stuck t').
-Proof.
+Proof with eauto.
   intros t t' T Hhas_type Hmulti. unfold stuck.
   intros [Hnf Hnot_val]. unfold normal_form in Hnf.
   induction Hmulti.
-  (* FILL IN HERE *) Admitted.
+  - apply progress in Hhas_type.
+    destruct Hhas_type...
+  - apply IHHmulti...
+    eapply preservation...
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -463,8 +537,29 @@ Theorem unique_types : forall Gamma e T T',
   Gamma |-- e \in T ->
   Gamma |-- e \in T' ->
   T = T'.
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof with eauto.
+  intros Gamma e T T' H.
+  generalize dependent T'.
+  induction H; intros; subst.
+  - inversion H. subst.
+    inversion H0. subst.
+    rewrite H2 in H4.
+    inversion H4...
+  - inversion H0. subst.
+    apply IHhas_type in H6. subst...
+  - inversion H1. subst.
+    apply IHhas_type1 in H5. subst.
+    apply IHhas_type2 in H7. subst.
+    inversion H5...
+  - inversion H...
+  - inversion H...
+  - inversion H2. subst.
+    apply IHhas_type1 in H7. subst.
+    apply IHhas_type2 in H9. subst.
+    apply IHhas_type3 in H10. subst.
+    reflexivity.
+Qed.
+
 (** [] *)
 
 (* ################################################################# *)
@@ -588,12 +683,18 @@ Lemma free_in_context : forall x t T Gamma,
 
     Complete the following proof. *)
 
-Proof.
+Proof with eauto.
   intros x t T Gamma H H0. generalize dependent Gamma.
   generalize dependent T.
   induction H as [| | |y T1 t1 H H0 IHappears_free_in| | |];
          intros; try solve [inversion H0; eauto].
-  (* FILL IN HERE *) Admitted.
+  - inversion H1. subst.
+    apply IHappears_free_in in H7.
+    destruct H7.
+    eapply update_neq in H.
+    rewrite H in H2.
+    exists x0...
+Qed.
 (** [] *)
 
 (** From the [free_in_context] lemma, it immediately follows that any
@@ -604,8 +705,15 @@ Proof.
 Corollary typable_empty__closed : forall t T,
     empty |-- t \in T  ->
     closed t.
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof with eauto.
+  intros.
+  unfold closed.
+  intros.
+  intros contra.
+  eapply (free_in_context x0 t T empty) in contra...
+  inversion contra.
+  discriminate H0.
+Qed.
 (** [] *)
 
 (** Finally, we establish _context_invariance_.  It is useful in cases
@@ -663,11 +771,31 @@ Lemma context_invariance : forall Gamma Gamma' t T,
 (** **** Exercise: 3 stars, standard, optional (context_invariance)
 
     Complete the following proof. *)
-Proof.
+Proof with eauto.
   intros.
   generalize dependent Gamma'.
   induction H as [| ? x0 ????? | | | |]; intros; auto.
-  (* FILL IN HERE *) Admitted.
+  - rewrite H0 in H...
+  - constructor.
+    apply IHhas_type.
+    intros.
+    destruct (x0 =? x1)%string eqn:D.
+    + apply eqb_eq in D. subst.
+      rewrite update_eq.
+      rewrite update_eq.
+      reflexivity.
+    + apply eqb_neq in D.
+      rewrite update_neq...
+      rewrite update_neq...
+  - econstructor.
+    + apply IHhas_type1.
+      intros.
+      apply H1...
+    + apply IHhas_type2.
+      intros.
+      apply H1...
+Qed.
+
 (** [] *)
 
 (** The context invariance lemma can actually be used in place of the

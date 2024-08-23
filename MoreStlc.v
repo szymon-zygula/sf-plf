@@ -670,7 +670,14 @@ Set Default Goal Selector "!".
            else if (pred x)=0 then 0
            else 1 + (halve (pred (pred x)))
 
-    (* FILL IN HERE *)
+      halve =
+      fix (
+        \f:Nat->Nat,
+          \x:Nat,
+             if x=0 then 0
+             else if (pred x)=0 then 0
+             else 1 + (halve (pred (pred x)))
+       )
 *)
 (** [] *)
 

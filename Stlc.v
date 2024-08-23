@@ -490,7 +490,33 @@ Check <{[x:=true] x}>.
 Inductive substi (s : tm) (x : string) : tm -> tm -> Prop :=
   | s_var1 :
       substi s x (tm_var x) s
-  (* FILL IN HERE *)
+  | s_var2 :
+      forall y,
+      String.eqb x y = false ->
+      substi s x (tm_var y) (tm_var y)
+  | s_true :
+      substi s x tm_true tm_true
+  | s_false :
+      substi s x tm_false tm_false
+  | s_func_s :
+      forall T t1,
+      substi s x <{ \x:T, t1 }> <{ \x:T, t1 }>
+  | s_func_o :
+      forall T t1 t2 y,
+      String.eqb x y = false ->
+      substi s x t1 t2 ->
+      substi s x <{ \y:T, t1 }> <{ \y:T, t2 }>
+  | s_app :
+      forall t1 t1x t2 t2x,
+      substi s x t1 t1x ->
+      substi s x t2 t2x ->
+      substi s x <{ t1 t2 }> <{ t1x t2x }>
+  | s_if :
+    forall t1 t2 t3 t1x t2x t3x,
+    substi s x t1 t1x ->
+    substi s x t2 t2x ->
+    substi s x t3 t3x ->
+    substi s x <{ if t1 then t2 else t3 }> <{ if t1x then t2x else t3x }>
 .
 
 Hint Constructors substi : core.
@@ -498,7 +524,59 @@ Hint Constructors substi : core.
 Theorem substi_correct : forall s x t t',
   <{ [x:=s]t }> = t' <-> substi s x t t'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  split.
+  - intros.
+    inversion H. subst.
+    induction t; simpl in *.
+    + unfold subst.
+      destruct (x0 =? s0)%string eqn:V.
+      * apply eqb_eq in V. subst.
+        constructor.
+      * apply s_var2.
+        assumption.
+    + apply s_app.
+      * apply IHt1. reflexivity.
+      * apply IHt2. reflexivity.
+    + destruct (x0 =? s0)%string eqn:V.
+      * apply eqb_eq in V. subst.
+        apply s_func_s.
+      * apply s_func_o.
+        -- assumption.
+        -- apply IHt.
+           reflexivity.
+    + constructor.
+    + constructor.
+    + apply s_if.
+      * apply IHt1. reflexivity.
+      * apply IHt2. reflexivity.
+      * apply IHt3. reflexivity.
+  - intros.
+    induction H.
+    + simpl. rewrite eqb_refl.
+      reflexivity.
+    + simpl. rewrite H.
+      reflexivity.
+    + constructor.
+    + constructor.
+    + simpl.
+      rewrite eqb_refl.
+      reflexivity.
+    + simpl.
+      rewrite H.
+      subst.
+      reflexivity.
+    + simpl.
+      rewrite IHsubsti1.
+      rewrite IHsubsti2.
+      reflexivity.
+    + simpl.
+      rewrite IHsubsti1.
+      rewrite IHsubsti2.
+      rewrite IHsubsti3.
+      reflexivity.
+Qed.
+
 (** [] *)
 
 (* ================================================================= *)
@@ -692,13 +770,23 @@ Lemma step_example5 :
        <{idBBBB idBB idB}>
   -->* idB.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  eapply multi_step.
+  + apply ST_App1.
+    apply ST_AppAbs.
+    constructor.
+  + eapply multi_step; simpl.
+    * apply ST_AppAbs.
+      constructor.
+    * simpl.
+      apply multi_refl.
+Qed.
 
 Lemma step_example5_with_normalize :
        <{idBBBB idBB idB}>
   -->* idB.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  normalize.
+Qed.
 (** [] *)
 
 (* ################################################################# *)
@@ -844,7 +932,17 @@ Example typing_example_2_full :
           (y (y x)) \in
     (Bool -> (Bool -> Bool) -> Bool).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply T_Abs.
+  apply T_Abs.
+  apply T_App with (t2 := (<{y x}>)) (T2 := <{Bool}>).
+  + apply T_Var. reflexivity.
+  + apply T_App with (T2 := <{Bool}>).
+    * apply T_Var.
+      reflexivity.
+    * apply T_Var.
+      reflexivity.
+Qed.
+
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (typing_example_3)
@@ -866,7 +964,16 @@ Example typing_example_3 :
                (y (x z)) \in
       T.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists <{(Bool -> Bool) -> ((Bool -> Bool) -> (Bool -> Bool))}>.
+  apply T_Abs.
+  apply T_Abs.
+  apply T_Abs.
+  apply T_App with (T2 := <{Bool}>).
+  + apply T_Var. reflexivity.
+  + apply T_App with (T2 := <{Bool}>).
+    * apply T_Var. reflexivity.
+    * apply T_Var. reflexivity.
+Qed.
 (** [] *)
 
 (** We can also show that some terms are _not_ typable.  For example,
@@ -908,7 +1015,26 @@ Example typing_nonexample_3 :
         empty |--
           \x:S, x x \in T).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros contra.
+  destruct contra as [S].
+  destruct H as [T].
+  inversion H. subst.
+  inversion H5. subst.
+  inversion H6. subst.
+  assert (TF: (x |-> S) x = Some S).
+  { apply update_eq. }
+  rewrite TF in H2.
+  injection H2. intros.
+  subst.
+  inversion H3. subst.
+  inversion H4.
+  clear H2 H6 H3 TF H5 H H4.
+  induction T2.
+  - discriminate H1.
+  - inversion H1. subst.
+    apply IHT2_1.
+    assumption.
+Qed.
 (** [] *)
 
 End STLC.
