@@ -1057,7 +1057,48 @@ Theorem cyclic_store:
     t / nil -->*
     <{ unit }> / (<{ \x:Nat, (!(loc 1)) x }> :: <{ \x:Nat, (!(loc 0)) x }> :: nil).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists <{
+    (\z:(Ref Nat), \y:(Ref Nat), (z := (\x:Nat, (!y) x)); (y := (\x:Nat, (!z) x))) (ref 0) (ref 0)
+  }>.
+
+  econstructor.
+  - apply ST_App1.
+    apply ST_App2.
+    + constructor.
+    + constructor.
+      constructor.
+  - econstructor.
+    + apply ST_App1.
+      * apply ST_AppAbs.
+        constructor.
+    + simpl.
+      econstructor.
+      * apply ST_App2.
+        -- constructor.
+        -- constructor.
+           constructor.
+      * simpl.
+        econstructor.
+        -- apply ST_AppAbs.
+           ++ constructor.
+        -- simpl.
+           econstructor.
+           ++ apply ST_App2.
+              ** constructor.
+              ** apply ST_Assign.
+                 --- constructor.
+                 --- simpl. auto.
+           ++ simpl. econstructor.
+              ** apply ST_AppAbs.
+                 constructor.
+              ** simpl. econstructor.
+                 --- apply ST_Assign.
+                     +++ constructor.
+                     +++ constructor.
+                 --- simpl.
+                     constructor.
+Qed.
+
 (** [] *)
 
 (** These problems arise from the fact that our proposed
@@ -1279,7 +1320,38 @@ Theorem store_not_unique:
     store_well_typed ST2 st /\
     ST1 <> ST2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  exists (cons <{!(loc 0)}> nil).
+  exists (cons <{Nat}> nil).
+  exists (cons <{Nat->Nat}> nil).
+  split; split.
+  - auto.
+  - intros.
+    simpl in H.
+    assert (Hl: l = 0).
+    + unfold "<" in H.
+      inversion H.
+      * reflexivity.
+      * inversion H1.
+    + subst.
+      assert (Hs: store_lookup 0 (<{!(loc 0) }> :: nil) = <{ !(loc 0) }>); try constructor.
+      apply T_Loc.
+      auto.
+  - split.
+    + auto.
+    + intros.
+      simpl in H.
+      assert (Hl: l = 0).
+      * unfold "<" in H.
+        inversion H.
+        -- reflexivity.
+        -- inversion H1.
+      * subst.
+        assert (Hs: store_lookup 0 (<{!(loc 0) }> :: nil) = <{ !(loc 0) }>); try constructor.
+        apply T_Loc.
+        auto.
+  - intros contra.
+    inversion contra.
+Qed.
 (** [] *)
 
 (** We can now state something closer to the desired preservation
@@ -1913,24 +1985,37 @@ Qed.
     sure it gives the correct result when applied to the argument
     [4].) *)
 
+Definition fac_fun : tm
+  := <{ \x:Nat, if0 x then 1 else x * ((! y) (pred x)) }>.
+
 Definition factorial : tm
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+  := <{
+    \z:Nat, (
+      (\y:Ref (Nat->Nat), ((y := fac_fun); ((! y) z))) (ref (\z:Nat, 0))
+    )
+  }>.
 
 Lemma factorial_type : empty; nil |-- factorial \in (Nat -> Nat).
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  repeat (econstructor)...
+Qed.
 
 (** If your definition is correct, you should be able to just
     uncomment the example below; the proof should be fully
     automatic using the [reduce] tactic. *)
 
-(* 
+Lemma factorial_0 : exists st,
+  <{ factorial 0 }> / nil -->* tm_const 1 / st.
+Proof.
+  eexists. unfold factorial. reduce.
+Qed.
+
 Lemma factorial_4 : exists st,
   <{ factorial 4 }> / nil -->* tm_const 24 / st.
 Proof.
   eexists. unfold factorial. reduce.
 Qed.
-*)
+
 (** [] *)
 
 (* ################################################################# *)

@@ -288,7 +288,14 @@ Example subtyping_example_1 :
   TRcd_kj <: TRcd_j.
 (* {k:A->A,j:B->B} <: {j:B->B} *)
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  unfold TRcd_kj.
+  unfold TRcd_j.
+  eapply S_Trans.
+  - apply S_RcdPerm...
+    intros contra.
+    inversion contra.
+  - apply S_RcdDepth...
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard (subtyping_example_2) *)
@@ -296,7 +303,9 @@ Example subtyping_example_2 :
   <{{ Top -> TRcd_kj }}> <:
           <{{ (C -> C) -> TRcd_j }}>.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  constructor...
+  apply subtyping_example_1.
+Qed.
 (** [] *)
 
 (** **** Exercise: 1 star, standard (subtyping_example_3) *)
@@ -305,7 +314,12 @@ Example subtyping_example_3 :
           <{{ (k : B :: nil) -> nil }}>.
 (* {}->{j:A} <: {k:B}->{} *)
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  constructor.
+  - constructor.
+    auto.
+  - constructor.
+    auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (subtyping_example_4) *)
@@ -313,7 +327,17 @@ Example subtyping_example_4 :
   <{{ x : A :: y : B :: z : C :: nil }}> <:
   <{{ z : C :: y : B :: x : A :: nil }}>.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  eapply S_Trans.
+  - apply S_RcdPerm...
+    intros contra. discriminate contra.
+  - eapply (S_Trans (<{{  "y" : B ::  "x" : A ::  "z" : C :: nil }}>) (<{{  "y" : B :: "z" : C :: "x" : A :: nil }}>)).
+    + apply S_RcdDepth...
+      apply S_RcdPerm...
+      intros contra. discriminate.
+    + apply S_RcdPerm...
+      intros contra. discriminate.
+Qed.
+
 (** [] *)
 
 End Examples.
@@ -478,7 +502,19 @@ Example typing_example_0 :
   empty |-- trcd_kj \in TRcd_kj.
 (* empty |-- {k=(\z:A.z), j=(\z:B.z)} : {k:A->A,j:B->B} *)
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold trcd_kj.
+  unfold TRcd_kj.
+  unfold TRcd_j.
+  apply T_RCons.
+  - auto.
+  - apply T_RCons.
+    + auto.
+    + auto.
+    + auto.
+    + auto.
+  - auto.
+  - auto.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars, standard (typing_example_1) *)
@@ -488,7 +524,7 @@ Example typing_example_1 :
               {k=(\z:A,z), j=(\z:B,z)}
          : B->B *)
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+
 (** [] *)
 
 (** **** Exercise: 2 stars, standard, optional (typing_example_2) *)

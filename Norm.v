@@ -671,7 +671,17 @@ Proof.
   eapply IHT2.
   apply  ST_App1. apply E.
   apply RRt; auto.
-  (* FILL IN HERE *) Admitted.
+  split; auto.
+  - eapply preservation in E.
+    + apply E.
+    + contradiction.
+  - split.
+    + eapply step_preserves_halting in E.
+      destruct E.
+      apply H.
+      assumption.
+    + contradiction.
+Qed.
 
 (** The generalization to multiple steps is trivial: *)
 
@@ -688,8 +698,50 @@ Qed.
 
 Lemma step_preserves_R' : forall T t t',
   empty |-- t \in T -> (t --> t') -> R T t' -> R T t.
-Proof.
-  (* FILL IN HERE *) Admitted.
+Proof with eauto.
+  intros.
+  generalize dependent t.
+  generalize dependent t'.
+  induction T; unfold R. intros. unfold R in H1.
+  - destruct H1.
+    destruct H2.
+    split.
+    + eapply preservation in H0.
+      * assumption.
+      * eassumption.
+    + split.
+      * apply step_preserves_halting in H0.
+        destruct H0. auto.
+      * apply I.
+  - fold R.
+    intros.
+    destruct H1.
+    destruct H2.
+    split.
+    + assumption.
+    + split.
+      * apply step_preserves_halting in H0.
+        destruct H0.
+        apply H4.
+        assumption.
+      * intros.
+        eapply IHT2.
+        -- apply H3.
+           apply H4.
+        -- econstructor.
+           ++ apply H.
+           ++ apply R_typable_empty in H4.
+              assumption.
+        -- apply ST_App1.
+           assumption.
+  - intros.
+    split; try assumption.
+    destruct H1.
+    destruct H2.
+    contradiction.
+Qed.
+
+
 
 Lemma multistep_preserves_R' : forall T t t',
   empty |-- t \in T -> (t -->* t') -> R T t' -> R T t.
@@ -825,7 +877,31 @@ Lemma vacuous_substitution : forall  t x,
      ~ appears_free_in x t  ->
      forall t', <{ [x:=t']t }> = t.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  induction t; unfold subst; fold subst; intros...
+  - destruct ((x =? s)%string) eqn:S.
+    + apply eqb_eq in S.
+      subst.
+      exfalso. apply H.
+      constructor.
+    + simpl.
+      reflexivity.
+  - rewrite IHt1...
+    rewrite IHt2...
+  - destruct (x =? s)%string eqn:S...
+    rewrite IHt...
+    intros contra.
+    apply H.
+    constructor...
+    apply eqb_neq in S...
+  - rewrite IHt1...
+    rewrite IHt2...
+    rewrite IHt3...
+  - rewrite IHt1...
+    rewrite IHt2...
+  - rewrite IHt...
+  - rewrite IHt...
+Qed.
+  
 
 Lemma subst_closed: forall t,
      closed t  ->
@@ -872,14 +948,29 @@ Lemma swap_subst : forall t x x1 v v1,
     closed v -> closed v1 ->
     <{ [x1:=v1]([x:=v]t) }> = <{ [x:=v]([x1:=v1]t) }>.
 Proof with eauto.
- induction t; intros; simpl.
+ induction t; intros; simpl...
   - (* var *)
    destruct (eqb_spec x s); destruct (eqb_spec x1 s).
    + subst. exfalso...
    + subst. simpl. rewrite String.eqb_refl. apply subst_closed...
    + subst. simpl. rewrite String.eqb_refl. rewrite subst_closed...
    + simpl. rewrite false_eqb_string... rewrite false_eqb_string...
-  (* FILL IN HERE *) Admitted.
+  - rewrite IHt1...
+    rewrite IHt2...
+  - destruct (x =? s)%string eqn:X; destruct (x1 =? s)%string eqn:X1; subst;
+      simpl;
+      rewrite X;
+      rewrite X1...
+    rewrite IHt...
+  - rewrite IHt1...
+    rewrite IHt2...
+    rewrite IHt3...
+  - rewrite IHt1...
+    rewrite IHt2...
+  - rewrite IHt...
+  - rewrite IHt...
+Qed.
+  
 
 (* ----------------------------------------------------------------- *)
 (** *** Properties of Multi-Substitutions *)
